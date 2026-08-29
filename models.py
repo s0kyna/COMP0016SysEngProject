@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from datetime import date
+from typing import Optional
 
 # ==========================================
 # STATUS ENUMS
@@ -65,6 +66,20 @@ class InvoiceQAStatus(Enum):
     MATCH = 1
     MISMATCH = 2
 
+class RemittanceStatus(Enum):
+    """
+    Tracks whether a bank payment has been matched to an invoice.
+    
+    Attrs:
+        UNPROCESSED: Just arrived from the bank feed. The AI hasn't looked at it yet.
+        MATCHED_AUTO: The AI CashApp Agent successfully linked it to an invoice.
+        MATCHED_MANUAL: A human manager had to intervene and link it manually (HITL).
+        UNMATCHED_ESCALATED: The AI is confused and escalated it to a human.
+    """
+    UNPROCESSED = 0
+    MATCHED_AUTO = 1
+    MATCHED_MANUAL = 2
+    UNMATCHED_ESCALATED = 3
 
 # ==========================================
 # DATACLASS MODELS (TABLES)
@@ -172,3 +187,43 @@ class Invoice:
     issue_date: date
     total_amount: float
     qa_status: InvoiceQAStatus
+
+
+@dataclass
+class BankRemittance:
+    """
+    The messy reality of bank transfers. Used by the CashApp Agent to close the O2C loop.
+    
+    Attrs:
+        payment_id: The unique transaction ID from the bank (e.g., 'TXN-001').
+        payment_date: When the money actually hit the company's bank account.
+        amount_received: The exact monetary value received.
+        raw_bank_text: The unstructured, messy text attached to the bank transfer.
+                       (The AI uses this to perform fuzzy matching).
+        matched_invoice_id: Links to the Invoice table. Starts as None!
+        status: The processing state of the payment (RemittanceStatus).
+    """
+    payment_id: str
+    payment_date: date
+    amount_received: float
+    raw_bank_text: str
+    status: RemittanceStatus
+    matched_invoice_id: Optional[str] = None  # Crucial: Starts empty!
+
+@dataclass
+class GeneralLedgerEntry:
+    """
+    The official accounting book. Once a record is written here, revenue is officially recognized.
+    
+    Attrs:
+        entry_id: Unique ID for the ledger row (e.g., 'GL-2026-001').
+        date_recorded: When the revenue was recognized.
+        account_name: Where the money goes (e.g., 'Software Sales Revenue').
+        invoice_id: The invoice this revenue came from.
+        credit_amount: The money added to the company's revenue.
+    """
+    entry_id: str
+    date_recorded: date
+    account_name: str
+    invoice_id: str
+    credit_amount: float
