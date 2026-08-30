@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
-from datetime import date
+from datetime import datetime
 from typing import Optional
 
 # ==========================================
@@ -101,7 +102,7 @@ class Customer:
     company_name: str
     billing_email: str
     contact_email: str
-    credit_limit: float
+    credit_limit: Decimal.decimal
 
 
 @dataclass
@@ -118,8 +119,8 @@ class PurchaseOrder:
     """
     po_id: str
     customer_id: int
-    order_date: date
-    expected_total: float
+    order_date: datetime
+    expected_total: Decimal.decimal
     status: PurchaseOrderStatus
 
 
@@ -142,7 +143,7 @@ class OrderLineItem:
     line_id: int
     po_id: str
     item_desc: str
-    unit_price: float
+    unit_price: Decimal.decimal
     ordered_qty: int
     received_qty: int
     billed_qty: int
@@ -163,7 +164,7 @@ class GoodsReceivedNote:
     """
     grn_id: str
     po_id: str
-    delivery_date: date
+    delivery_date: datetime
     received_by_signature: str
     status: GRNStatus
 
@@ -184,8 +185,8 @@ class Invoice:
     invoice_id: str
     po_id: str
     grn_id: str
-    issue_date: date
-    total_amount: float
+    issue_date: datetime
+    total_amount: Decimal.decimal
     qa_status: InvoiceQAStatus
 
 
@@ -204,8 +205,8 @@ class BankRemittance:
         status: The processing state of the payment (RemittanceStatus).
     """
     payment_id: str
-    payment_date: date
-    amount_received: float
+    payment_date: datetime
+    amount_received: Decimal.decimal
     raw_bank_text: str
     status: RemittanceStatus
     matched_invoice_id: Optional[str] = None  # Crucial: Starts empty!
@@ -223,7 +224,7 @@ class GeneralLedgerEntry:
         credit_amount: The money added to the company's revenue.
     """
     entry_id: str
-    date_recorded: date
+    date_recorded: datetime
     account_name: str
     invoice_id: str
-    credit_amount: float
+    credit_amount: Decimal.decimal
