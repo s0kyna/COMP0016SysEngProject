@@ -102,7 +102,7 @@ class Customer:
     company_name: str
     billing_email: str
     contact_email: str
-    credit_limit: Decimal.decimal
+    credit_limit: Decimal
 
 
 @dataclass
@@ -120,7 +120,7 @@ class PurchaseOrder:
     po_id: str
     customer_id: int
     order_date: datetime
-    expected_total: Decimal.decimal
+    expected_total: Decimal
     status: PurchaseOrderStatus
 
 
@@ -143,7 +143,7 @@ class OrderLineItem:
     line_id: int
     po_id: str
     item_desc: str
-    unit_price: Decimal.decimal
+    unit_price: Decimal
     ordered_qty: int
     received_qty: int
     billed_qty: int
@@ -186,7 +186,7 @@ class Invoice:
     po_id: str
     grn_id: str
     issue_date: datetime
-    total_amount: Decimal.decimal
+    total_amount: Decimal
     qa_status: InvoiceQAStatus
 
 
@@ -206,7 +206,7 @@ class BankRemittance:
     """
     payment_id: str
     payment_date: datetime
-    amount_received: Decimal.decimal
+    amount_received: Decimal
     raw_bank_text: str
     status: RemittanceStatus
     matched_invoice_id: Optional[str] = None  # Crucial: Starts empty!
@@ -227,4 +227,4 @@ class GeneralLedgerEntry:
     date_recorded: datetime
     account_name: str
     invoice_id: str
-    credit_amount: Decimal.decimal
+    credit_amount: Decimal

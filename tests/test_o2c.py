@@ -1,29 +1,32 @@
 from datetime import date
-from mock_company import MockCompany, MockGeneralLedger
+
+# Make sure to import the MockEventTracker!
+from mock_company import MockCompany, MockGeneralLedger, MockEventTracker
 from models import GeneralLedgerEntry, Invoice, InvoiceQAStatus
 
-
 def test_o2c_success():
-    # Initialize our company and our accounting book
-    company = MockCompany()
-    ledger = MockGeneralLedger()
+    # 1. Initialize the Event Tracker (The Audit Trail)
+    event_tracker = MockEventTracker()
+    
+    # 2. Inject the tracker into our company and our accounting book (Dependency Injection!)
+    company = MockCompany(event_tracker)
+    ledger = MockGeneralLedger(event_tracker)
 
     print("--- Starting O2C Cycle ---")
 
     # STAGE 1: Receive the Order
-    # The buyer sends us a formal request to buy something.
     po = company.receive_purchase_order()
+    # ✅ Check that the PO event fired
+    assert event_tracker.events == ["po"], f"Test Failed: Expected ['po'], got {event_tracker.events}"
     
     # STAGE 2: Fulfillment & Delivery
-    # The warehouse packs the items and ships them out.
     company.acknowledge_goods_are_sent(po.po_id)
     
-    # The warehouse (or the buyer) confirms exactly what physically arrived.
     grn = company.receive_grn()
+    # ✅ Check that the GRN event fired next
+    assert event_tracker.events == ["po", "grn"], f"Test Failed: Expected ['po', 'grn'], got {event_tracker.events}"
 
     # STAGE 3: Invoicing
-    # We create the financial demand based on the PO and the GRN.
-    # (In a real system, the 3-Way Match happens right before we send this!)
     draft_invoice = Invoice(
         invoice_id="INV-9901",
         po_id=po.po_id,
@@ -33,14 +36,15 @@ def test_o2c_success():
         qa_status=InvoiceQAStatus.PENDING
     )
     company.send_invoice(draft_invoice)
+    # ✅ Check that the Invoice event fired
+    assert event_tracker.events == ["po", "grn", "invoice"]
 
     # STAGE 4: Cash Collection
-    # The customer transfers money to our bank account.
     remittance = company.receive_payments()
+    # ✅ Check that the Payment event fired
+    assert event_tracker.events == ["po", "grn", "invoice", "payment"]
 
     # STAGE 5: Recording Revenue
-    # The CashApp agent verifies the bank transfer matches the invoice.
-    # Once verified, we officially record the revenue in the accounting books.
     gl_entry = GeneralLedgerEntry(
         entry_id=f"GL-{draft_invoice.invoice_id}",
         date_recorded=date.today(),
@@ -50,7 +54,11 @@ def test_o2c_success():
     )
     
     ledger.record_payment(gl_entry)
+    # ✅ Check that the Final Ledger entry fired
+    assert event_tracker.events == ["po", "grn", "invoice", "payment", "ledger_entry"]
 
-    print("--- O2C Cycle Complete ---")
+    print("\n--- O2C Cycle Complete & Fully Audited ✅ ---")
+    print("All assertions passed. The Event Tracker perfectly logged the sequence!")
 
-test_o2c_success()
+if __name__ == "__main__":
+    test_o2c_success()
