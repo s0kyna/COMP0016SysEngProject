@@ -1,12 +1,12 @@
 from datetime import date
 
 # Make sure to import the MockEventTracker!
-from mock_company import MockCompany, MockGeneralLedger, MockEventTracker
+from mocks import MockCompany, MockGeneralLedger, MockO2CController
 from models import GeneralLedgerEntry, Invoice, InvoiceQAStatus
 
 def test_o2c_success():
     # 1. Initialize the Event Tracker (The Audit Trail)
-    event_tracker = MockEventTracker()
+    event_tracker = MockO2CController()
     
     # 2. Inject the tracker into our company and our accounting book (Dependency Injection!)
     company = MockCompany(event_tracker)

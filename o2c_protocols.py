@@ -9,7 +9,7 @@ from models import (
 # THE BLUEPRINTS (Interfaces)
 # ==========================================
 
-class EventTracker(ABC):
+class O2CController(ABC):
     """
     Interface for tracking critical business milestones (Audit Trail).
     """

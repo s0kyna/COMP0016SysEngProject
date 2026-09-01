@@ -1,6 +1,6 @@
-# mock_company.py
+# mocks.py
 from datetime import date
-from o2c_protocols import Company, Ledger, EventTracker
+from o2c_protocols import Company, Ledger, O2CController
 from models import (
     BankRemittance, GRNStatus, GeneralLedgerEntry, 
     GoodsReceivedNote, Invoice, PurchaseOrder, 
@@ -11,7 +11,7 @@ from models import (
 # THE MOCK IMPLEMENTATIONS
 # ==========================================
 
-class MockEventTracker(EventTracker):
+class MockO2CController(O2CController):
     """
     A simple list-based tracker for unit testing the sequence of events.
     """
@@ -38,7 +38,7 @@ class MockCompany(Company):
     """
     A concrete implementation of the Company Interface, now with Dependency Injection.
     """
-    def __init__(self, event_tracker: EventTracker):
+    def __init__(self, event_tracker: O2CController):
         self.event_tracker = event_tracker
 
     def receive_purchase_order(self) -> PurchaseOrder:
@@ -100,7 +100,7 @@ class MockCompany(Company):
 
 
 class MockGeneralLedger(Ledger):
-    def __init__(self, event_tracker: EventTracker):
+    def __init__(self, event_tracker: O2CController):
         self.event_tracker = event_tracker
 
     def record_payment(self, entry: GeneralLedgerEntry) -> None:
