@@ -31,7 +31,12 @@ class HumanController(O2CController):
             self.company.send_invoice(invoice)
         else:
             print("  🛑 [Controller] MATCH FAILED. Halting pipeline.")
-            self.human.complain("Mismatch detected!")
+            complaint = self.human.complain("Mismatch detected!")
+            
+            # 🚨 Make sure these two lines are added! 
+            # This is what triggers the tracker to log 'follow_up_customer' and 'follow_up_warehouse'
+            self.company.follow_up_with_customer(complaint.message)
+            self.company.follow_up_with_warehouse("Please physically recount the items.")
             
     def on_send_invoice(self, invoice):
         self.events.append("invoice")
