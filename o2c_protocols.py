@@ -11,10 +11,15 @@ from models import (
 
 class O2CController(ABC):
     """
-    Interface for tracking critical business milestones (Audit Trail).
+    Interface for actively controlling and tracking critical business milestones.
+    Every event in the pipeline must trigger one of these methods.
     """
     @abstractmethod
     def on_receive_purchase_order(self, po: PurchaseOrder) -> None:
+        pass
+    
+    @abstractmethod
+    def on_goods_sent(self, order_id: str) -> None:
         pass
     
     @abstractmethod
@@ -22,21 +27,30 @@ class O2CController(ABC):
         pass
     
     @abstractmethod
-    def on_receive_payments(self, payment: BankRemittance) -> None:
-        pass
-    
-    @abstractmethod
     def on_send_invoice(self, invoice: Invoice) -> None:
+        pass
+
+    @abstractmethod
+    def on_receive_payments(self, payment: BankRemittance) -> None:
         pass
         
     @abstractmethod
     def on_record_payment(self, entry: GeneralLedgerEntry) -> None:
         pass
 
+    # --- Exception Tracking (When things go wrong) ---
+    @abstractmethod
+    def on_follow_up_with_customer(self, issue: str) -> None:
+        pass
+
+    @abstractmethod
+    def on_follow_up_with_warehouse(self, issue: str) -> None:
+        pass
+
 
 class Company(ABC):
     """
-    The interface defining the required O2C steps. 
+    The interface defining the required O2C system actions. 
     """
     @abstractmethod
     def receive_purchase_order(self) -> PurchaseOrder:
@@ -56,6 +70,15 @@ class Company(ABC):
 
     @abstractmethod
     def receive_payments(self) -> BankRemittance:
+        pass
+
+    # --- Exception Handling Actions ---
+    @abstractmethod
+    def follow_up_with_customer(self, message: str) -> None:
+        pass
+
+    @abstractmethod
+    def follow_up_with_warehouse(self, message: str) -> None:
         pass
 
 

@@ -20,18 +20,28 @@ class MockO2CController(O2CController):
     
     def on_receive_purchase_order(self, po: PurchaseOrder):
         self.events.append("po")
+        
+    def on_goods_sent(self, order_id: str):
+        self.events.append("goods_sent")
 
     def on_receive_grn(self, grn: GoodsReceivedNote):
         self.events.append("grn")
         
+    def on_send_invoice(self, invoice: Invoice):
+        self.events.append("invoice")
+
     def on_receive_payments(self, payment: BankRemittance):
         self.events.append("payment")
         
-    def on_send_invoice(self, invoice: Invoice):
-        self.events.append("invoice")
-        
     def on_record_payment(self, entry: GeneralLedgerEntry):
         self.events.append("ledger_entry")
+
+    # --- Exception Tracking ---
+    def on_follow_up_with_customer(self, issue: str):
+        self.events.append("follow_up_customer")
+
+    def on_follow_up_with_warehouse(self, issue: str):
+        self.events.append("follow_up_warehouse")
 
 
 class MockCompany(Company):
@@ -59,6 +69,9 @@ class MockCompany(Company):
     def acknowledge_goods_are_sent(self, order_id: str) -> None:
         print(f"\n[MockCompany] Stage 2: Warehouse is packing and shipping {order_id}...")
         print("  -> Goods have successfully left the warehouse.")
+        
+        # Trigger the event tracker!
+        self.event_tracker.on_goods_sent(order_id)
 
     def receive_grn(self) -> GoodsReceivedNote:
         print("\n[MockCompany] Stage 2b: Receiving Goods Received Note (GRN)...")
@@ -97,6 +110,21 @@ class MockCompany(Company):
         # Trigger the event tracker!
         self.event_tracker.on_receive_payments(remittance)
         return remittance
+
+    # --- Exception Handling Actions ---
+    def follow_up_with_customer(self, message: str) -> None:
+        print(f"\n[MockCompany] Exception: Generating email to Customer...")
+        print(f"  -> Message: {message}")
+        
+        # Trigger the event tracker!
+        self.event_tracker.on_follow_up_with_customer(message)
+
+    def follow_up_with_warehouse(self, message: str) -> None:
+        print(f"\n[MockCompany] Exception: Generating email to Warehouse...")
+        print(f"  -> Message: {message}")
+        
+        # Trigger the event tracker!
+        self.event_tracker.on_follow_up_with_warehouse(message)
 
 
 class MockGeneralLedger(Ledger):
