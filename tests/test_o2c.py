@@ -8,6 +8,9 @@ def test_o2c_success():
     # 1. Initialize the Event Tracker (The Audit Trail)
     event_tracker = MockO2CController()
     
+    # ✅ Check that the tracker is completely empty at the start
+    assert event_tracker.events == [], f"Test Failed: Expected empty tracker, got {event_tracker.events}"
+    
     # 2. Inject the tracker into our company and our accounting book (Dependency Injection!)
     company = MockCompany(event_tracker)
     ledger = MockGeneralLedger(event_tracker)
@@ -16,15 +19,20 @@ def test_o2c_success():
 
     # STAGE 1: Receive the Order
     po = company.receive_purchase_order()
+    
     # ✅ Check that the PO event fired
     assert event_tracker.events == ["po"], f"Test Failed: Expected ['po'], got {event_tracker.events}"
     
     # STAGE 2: Fulfillment & Delivery
     company.acknowledge_goods_are_sent(po.po_id)
     
+    # ✅ Check that the Goods Sent event fired
+    assert event_tracker.events == ["po", "goods_sent"], f"Test Failed: Expected ['po', 'goods_sent'], got {event_tracker.events}"
+    
     grn = company.receive_grn()
+    
     # ✅ Check that the GRN event fired next
-    assert event_tracker.events == ["po", "grn"], f"Test Failed: Expected ['po', 'grn'], got {event_tracker.events}"
+    assert event_tracker.events == ["po", "goods_sent", "grn"], f"Test Failed: Expected ['po', 'goods_sent', 'grn'], got {event_tracker.events}"
 
     # STAGE 3: Invoicing
     draft_invoice = Invoice(
@@ -36,13 +44,15 @@ def test_o2c_success():
         qa_status=InvoiceQAStatus.PENDING
     )
     company.send_invoice(draft_invoice)
+    
     # ✅ Check that the Invoice event fired
-    assert event_tracker.events == ["po", "grn", "invoice"]
+    assert event_tracker.events == ["po", "goods_sent", "grn", "invoice"]
 
     # STAGE 4: Cash Collection
     remittance = company.receive_payments()
+    
     # ✅ Check that the Payment event fired
-    assert event_tracker.events == ["po", "grn", "invoice", "payment"]
+    assert event_tracker.events == ["po", "goods_sent", "grn", "invoice", "payment"]
 
     # STAGE 5: Recording Revenue
     gl_entry = GeneralLedgerEntry(
@@ -54,8 +64,9 @@ def test_o2c_success():
     )
     
     ledger.record_payment(gl_entry)
+    
     # ✅ Check that the Final Ledger entry fired
-    assert event_tracker.events == ["po", "grn", "invoice", "payment", "ledger_entry"]
+    assert event_tracker.events == ["po", "goods_sent", "grn", "invoice", "payment", "ledger_entry"]
 
     print("\n--- O2C Cycle Complete & Fully Audited ✅ ---")
     print("All assertions passed. The Event Tracker perfectly logged the sequence!")
