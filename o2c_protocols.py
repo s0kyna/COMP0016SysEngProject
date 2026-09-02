@@ -55,15 +55,6 @@ class O2CController(ABC):
     def escalate_concerns(self, invoice_id: str) -> None:
         pass
 
-# Add to O2CController class in o2c_protocols.py
-    @abstractmethod
-    def on_dunning_reminder(self, invoice_id: str) -> None:
-        pass
-        
-    @abstractmethod
-    def on_dunning_escalation(self, invoice_id: str) -> None:
-        pass
-
 
 class Company(ABC):
     """
