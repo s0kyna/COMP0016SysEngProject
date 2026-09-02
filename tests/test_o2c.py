@@ -110,6 +110,66 @@ def test_o2c_failure():
     print("\n--- O2C Cycle Halted & Exceptions Audited ✅ ---")
     print("All assertions passed. The tracker successfully logged the failures!")
 
+def test_o2c_dunning_flow():
+    from mocks import MockCompany, MockGeneralLedger
+    from controller import HumanController
+    from human import Human
+    from models import GeneralLedgerEntry
+    from datetime import date
+
+    # Setup
+    human = Human()
+    controller = HumanController(human)
+    company = MockCompany(controller)
+    ledger = MockGeneralLedger(controller)
+    controller.set_company(company)
+
+    print("\n--- Starting O2C Cycle (DUNNING PATH) ---")
+
+    # 1. Normal Setup (Order -> Goods -> GRN -> Invoice)
+    po = company.receive_purchase_order()
+    company.receive_grn() # Automatically triggers Human to match and send invoice
+    
+    assert controller.events == ["po", "goods_sent", "grn", "invoice"]
+
+    # 2. DUNNING LEVEL 1 (7 Days Late)
+    print("\n[System Clock] ⏰ 7 Days have passed without payment...")
+    # The controller/system checks the date and triggers the company
+    company.send_reminder_letter("INV-9901")
+    assert controller.events == ["po", "goods_sent", "grn", "invoice", "dunning_reminder"]
+
+    # 3. DUNNING LEVEL 2 (14 Days Late)
+    print("\n[System Clock] ⏰ 14 Days have passed without payment...")
+    company.escalate_concerns("INV-9901")
+    assert controller.events == ["po", "goods_sent", "grn", "invoice", "dunning_reminder", "dunning_escalation"]
+
+    # 4. Late Payment Finally Received
+    print("\n[Customer] Apologies, sending late payment now.")
+    remittance = company.receive_payments()
+    
+    # 5. Record Late Payment
+    gl_entry = GeneralLedgerEntry(
+        entry_id=f"GL-INV-9901-LATE",
+        date_recorded=date.today(),
+        account_name="Product Sales Revenue",
+        invoice_id="INV-9901",
+        credit_amount=remittance.amount_received
+    )
+    ledger.record_payment(gl_entry)
+
+    # ✅ FINAL AUDIT CHECK: Ensures the entire late-payment sequence was tracked
+    assert controller.events == [
+        "po", 
+        "goods_sent", 
+        "grn", 
+        "invoice", 
+        "dunning_reminder", 
+        "dunning_escalation", 
+        "payment", 
+        "ledger_entry"
+    ]
+    
+    print("\n--- Dunning Cycle Complete & Fully Audited ✅ ---")
 
 if __name__ == "__main__":
     print("Running Success Path...")
@@ -119,3 +179,7 @@ if __name__ == "__main__":
     
     print("Running Failure Path...")
     test_o2c_failure()
+
+    print("\n" + "="*50)
+    print("Testing Dunning...")
+    test_o2c_dunning_flow()

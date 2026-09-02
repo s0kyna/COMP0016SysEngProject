@@ -42,6 +42,12 @@ class MockO2CController(O2CController):
 
     def on_follow_up_with_warehouse(self, issue: str):
         self.events.append("follow_up_warehouse")
+        
+    def on_dunning_reminder(self, invoice_id: str):
+        self.events.append("dunning_reminder")
+
+    def on_dunning_escalation(self, invoice_id: str):
+        self.events.append("dunning_escalation")
 
 
 class MockCompany(Company):
@@ -125,6 +131,14 @@ class MockCompany(Company):
         
         # Trigger the event tracker!
         self.event_tracker.on_follow_up_with_warehouse(message)
+
+    def send_reminder_letter(self, invoice_id: str) -> None:
+        print(f"\n[MockCompany] Dunning Level 1: Sending 7-day reminder for {invoice_id}...")
+        self.event_tracker.on_dunning_reminder(invoice_id)
+
+    def escalate_concerns(self, invoice_id: str) -> None:
+        print(f"\n[MockCompany] Dunning Level 2: Escalating 14-day unpaid invoice {invoice_id}...")
+        self.event_tracker.on_dunning_escalation(invoice_id)
 
 
 class MockGeneralLedger(Ledger):

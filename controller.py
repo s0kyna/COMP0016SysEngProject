@@ -53,3 +53,9 @@ class HumanController(O2CController):
 
     def on_follow_up_with_warehouse(self, issue: str):
         self.events.append("follow_up_warehouse")
+
+    def on_dunning_reminder(self, invoice_id: str):
+        self.events.append("dunning_reminder")
+
+    def on_dunning_escalation(self, invoice_id: str):
+        self.events.append("dunning_escalation")
