@@ -3,7 +3,7 @@ from enum import Enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime,
+    Column, Integer, String, DateTime, Text,
     Enum as SQLEnum, ForeignKey, Numeric
 )
 from sqlalchemy.orm import declarative_base
@@ -280,4 +280,31 @@ class AgentAction(Base):
     reason = Column(String, nullable=True)
     confidence = Column(Numeric(5, 2), nullable=True)
     status = Column(SQLEnum(AgentActionStatus), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CaseEvidence(Base):
+    __tablename__ = "case_evidence"
+
+    evidence_id = Column(Integer, primary_key=True, autoincrement=True)
+    entity_type = Column(String, nullable=False)
+    entity_id = Column(String, nullable=False)
+    
+    source_system = Column(String, nullable=False) # ERP, EMAIL, WAREHOUSE_SYSTEM, CRM, etc.
+    source = Column(String, nullable=False)        # Finance, Warehouse, Customer, Supplier...
+    evidence_type = Column(String, nullable=False) # NOTE, EMAIL, APPROVAL, ATTACHMENT, DELIVERY_COMMENT
+    content = Column(Text, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class HumanReviewCase(Base):
+    __tablename__ = "human_review_cases"
+
+    review_id = Column(Integer, primary_key=True, autoincrement=True)
+    review_type = Column(String, nullable=False)
+    entity_type = Column(String, nullable=False)
+    entity_id = Column(String, nullable=False)
+    reason = Column(Text, nullable=False)
+    recommended_action = Column(Text)
+    status = Column(String, default="OPEN")
     created_at = Column(DateTime, default=datetime.utcnow)
