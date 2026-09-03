@@ -46,7 +46,7 @@ class O2CController(ABC):
     @abstractmethod
     def on_follow_up_with_warehouse(self, issue: str) -> None:
         pass
-    # Add to Company class in o2c_protocols.py
+
     @abstractmethod
     def send_reminder_letter(self, invoice_id: str) -> None:
         pass
