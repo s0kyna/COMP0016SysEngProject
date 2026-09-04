@@ -67,7 +67,7 @@ def test_invoice_review_approve_updates_invoice_and_resolution_metadata(patch_db
     assert r.status_code == 200
 
     s = patch_db()
-    review = s.query(HumanReviewCase).get(rid)
+    review = s.get(HumanReviewCase, rid)
     inv = s.query(Invoice).filter_by(invoice_id="INV-1").one()
     assert review.status == "APPROVED"
     assert review.resolved_at is not None
