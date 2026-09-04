@@ -479,7 +479,7 @@ def seed():
             11000,
             5,
             25,
-            qa_status=InvoiceQAStatus.MISMATCH
+            qa_status=InvoiceQAStatus.PENDING
         )
 
         s.add(
