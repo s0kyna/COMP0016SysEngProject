@@ -308,3 +308,7 @@ class HumanReviewCase(Base):
     recommended_action = Column(Text)
     status = Column(String, default="OPEN")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    resolved_at = Column(DateTime, nullable=True)
+    resolution_action = Column(String, nullable=True)
+    resolution_note = Column(Text, nullable=True)

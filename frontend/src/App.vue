@@ -23,6 +23,7 @@ const cashAllocations = ref({})
 const agentActions = ref([])
 const caseId = ref("")
 const caseOverview = ref(null)
+const recentCases = ref([])
 
 const reviewSections = ["INVOICE_QA_REVIEW", "CASH_APPLICATION_REVIEW", "DUNNING_REVIEW"]
 const currentTitle = computed(() => sections.find(x => x.value === selectedSection.value)?.label || "")
@@ -54,6 +55,7 @@ async function loadSection(section) {
   else if (section === "OVERVIEW") {
     await loadAllReviews()
     await loadAgentActions()
+    await loadRecentCases()
   }
 }
 
@@ -150,6 +152,24 @@ async function loadAgentActions() {
   }
 }
 
+async function loadRecentCases() {
+  try {
+    const response = await fetch("http://127.0.0.1:8000/recent-cases")
+    if (!response.ok) throw new Error("Could not load recent cases")
+    recentCases.value = await response.json()
+  } catch (err) {
+    console.error(err)
+    recentCases.value = []
+  }
+}
+
+async function openCase(entityId) {
+  selectedSection.value = "CASE_OVERVIEW"
+  caseId.value = entityId
+  caseOverview.value = null
+  await searchCase()
+}
+
 async function searchCase() {
   if (!caseId.value.trim()) return
   try {
@@ -169,6 +189,7 @@ async function searchCase() {
 onMounted(async () => {
   await loadAllReviews()
   await loadAgentActions()
+  await loadRecentCases()
 })
 </script>
 
@@ -204,14 +225,36 @@ onMounted(async () => {
           <div class="stat-card"><span>Cash Application</span><strong>{{ countType('CASH_APPLICATION_REVIEW') }}</strong></div>
           <div class="stat-card"><span>Dunning</span><strong>{{ countType('DUNNING_REVIEW') }}</strong></div>
         </div>
-        <section class="panel">
-          <div class="panel-heading"><div><h2>Recent Agent Activity</h2><p>Latest automated decisions and escalations</p></div></div>
-          <div v-for="action in agentActions.slice(0, 8)" :key="action.action_id" class="activity-row">
-            <div><strong>{{ action.agent_name }}</strong><span>{{ action.entity_type }} · {{ action.entity_id }}</span></div>
-            <div><strong>{{ action.decision }}</strong><span>{{ action.status }} · {{ action.confidence ?? '—' }}</span></div>
-            <p>{{ action.reason }}</p>
-          </div>
-        </section>
+        <div class="overview-grid">
+          <section class="panel">
+            <div class="panel-heading"><div><h2>Recently Updated Cases</h2><p>Open the latest O2C case files</p></div></div>
+            <p v-if="recentCases.length === 0" class="muted">No recent case activity.</p>
+            <button
+              v-for="item in recentCases.slice(0, 8)"
+              :key="item.entity_id"
+              class="recent-case"
+              @click="openCase(item.entity_id)"
+            >
+              <div class="recent-case-main">
+                <strong>{{ item.entity_id }}</strong>
+                <span>{{ item.summary }}</span>
+              </div>
+              <div class="recent-case-meta">
+                <strong>{{ item.status }}</strong>
+                <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+              </div>
+            </button>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading"><div><h2>Recent Agent Activity</h2><p>Latest automated decisions and escalations</p></div></div>
+            <div v-for="action in agentActions.slice(0, 8)" :key="action.action_id" class="activity-row">
+              <div><strong>{{ action.agent_name }}</strong><span>{{ action.entity_type }} · {{ action.entity_id }}</span></div>
+              <div><strong>{{ action.decision }}</strong><span>{{ action.status }} · {{ action.confidence ?? '—' }}</span></div>
+              <p>{{ action.reason }}</p>
+            </div>
+          </section>
+        </div>
       </div>
 
       <div v-else-if="reviewSections.includes(selectedSection)" class="review-layout">
