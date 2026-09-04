@@ -12,6 +12,25 @@ from models import (
 
 load_dotenv()
 
+def require_azure_config():
+    required = [
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_API_VERSION",
+        "AZURE_OPENAI_DEPLOYMENT_NAME",
+    ]
+
+    missing = [
+        key for key in required
+        if not os.getenv(key)
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Azure OpenAI credentials are required for this case. "
+            "Missing: " + ", ".join(missing)
+        )
+
 INSTRUCTIONS = """
 You are an AI Dunning Analyst in an Order-to-Cash system.
 
@@ -149,6 +168,7 @@ def parse_response(text):
     return result
 
 async def analyse_with_ai(case):
+    require_azure_config()
     client = OpenAIChatCompletionClient(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -243,7 +263,21 @@ async def run_dunning(invoice_id):
     return result
 
 if __name__ == "__main__":
-    r = asyncio.run(run_dunning("INV-9901"))
-    print("\n=== RESULT ===")
-    for k, v in r.items():
-        print(f"{k}: {v}")
+    import sys
+
+    if len(sys.argv) != 2:
+        print(
+            "Usage: python -m agents.dunning <invoice_id>"
+        )
+        sys.exit(1)
+
+    invoice_id = sys.argv[1]
+
+    result = asyncio.run(
+        run_dunning(invoice_id)
+    )
+
+    print("\n========================================")
+    print("           FINAL RESULT")
+    print("========================================")
+    print(result)

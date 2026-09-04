@@ -11,6 +11,25 @@ from models import (
 
 load_dotenv()
 
+def require_azure_config():
+    required = [
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_API_VERSION",
+        "AZURE_OPENAI_DEPLOYMENT_NAME",
+    ]
+
+    missing = [
+        key for key in required
+        if not os.getenv(key)
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Azure OpenAI credentials are required for this case. "
+            "Missing: " + ", ".join(missing)
+        )
+
 INSTRUCTIONS = """
 You are an AI Invoice Exception Analyst in an Order-to-Cash system.
 Python has already performed deterministic accounting checks. You are only called when an exception exists.
@@ -218,6 +237,7 @@ def save_result(invoice_id, result):
         s.close()
         
 async def analyse_exception(evidence, issues):
+    require_azure_config()
     client = OpenAIChatCompletionClient(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -252,13 +272,21 @@ async def run_invoice_qa(invoice_id):
     return result
 
 if __name__ == "__main__":
-    r = asyncio.run(run_invoice_qa("INV-9901"))
-    print("\n=== RESULT ===")
-    print(f"Decision: {r['decision']}")
-    print(f"Category: {r['category']}")
-    print(f"Confidence: {r['confidence']}")
-    print(f"Risk: {r['risk']}")
-    print(f"Human review: {r['human_review_required']}")
-    print(f"Reason: {r['reason']}")
-    print(f"Missing evidence: {r['missing_evidence']}")
-    print(f"Next action: {r['recommended_action']}")
+    import sys
+
+    if len(sys.argv) != 2:
+        print(
+            "Usage: python -m agents.invoice_qa <invoice_id>"
+        )
+        sys.exit(1)
+
+    invoice_id = sys.argv[1]
+
+    result = asyncio.run(
+        run_invoice_qa(invoice_id)
+    )
+
+    print("\n========================================")
+    print("           FINAL RESULT")
+    print("========================================")
+    print(result)

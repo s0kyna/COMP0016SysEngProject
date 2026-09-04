@@ -16,6 +16,25 @@ from models import (
 
 load_dotenv()
 
+def require_azure_config():
+    required = [
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_API_VERSION",
+        "AZURE_OPENAI_DEPLOYMENT_NAME",
+    ]
+
+    missing = [
+        key for key in required
+        if not os.getenv(key)
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Azure OpenAI credentials are required for this case. "
+            "Missing: " + ", ".join(missing)
+        )
+
 CASH_APPLICATION_INSTRUCTIONS = """
 You are a Cash Application Agent for an Order-to-Cash process.
 
@@ -224,6 +243,7 @@ def _parse_response(text):
     return result
 
 async def run_ai_match(case):
+    require_azure_config()
     client = OpenAIChatCompletionClient(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -443,5 +463,21 @@ async def run_cash_application(payment_id):
     return result
 
 if __name__ == "__main__":
-    result = asyncio.run(run_cash_application("PAY-2001"))
+    import sys
+
+    if len(sys.argv) != 2:
+        print(
+            "Usage: python -m agents.cash_application <payment_id>"
+        )
+        sys.exit(1)
+
+    payment_id = sys.argv[1]
+
+    result = asyncio.run(
+        run_cash_application(payment_id)
+    )
+
+    print("\n========================================")
+    print("           FINAL RESULT")
+    print("========================================")
     print(result)

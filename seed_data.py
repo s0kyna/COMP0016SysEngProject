@@ -98,6 +98,9 @@ def seed():
         add_customer(s, 104, "Umbrella Retail", 90000)
         add_customer(s, 105, "Stark Industries", 150000)
         add_customer(s, 106, "Wayne Enterprises", 200000)
+        add_customer(s, 107, "Live Invoice Ltd", 100000)
+        add_customer(s, 108, "Live Cash Ltd", 100000)
+        add_customer(s, 109, "Live Collections Ltd", 100000)
 
         # -----------------------------------------------------
         # INVOICE QA: 3 genuine human-review cases
@@ -454,7 +457,141 @@ def seed():
             "Recent credible payment promise indicates payment is imminent.", 0.90,
             AgentActionStatus.COMPLETED
         )
+        # =====================================================
+        # LIVE AGENT CASES
+        # These contain ERP input only.
+        # No AgentAction / HumanReviewCase is seeded.
+        # =====================================================
 
+        # -----------------------------------------------------
+        # LIVE 1: Invoice QA
+        # Deliberate quantity discrepancy.
+        # Running the Invoice QA agent should detect the
+        # mismatch and use AI to interpret the exception.
+        # -----------------------------------------------------
+
+        add_case_invoice(
+            s,
+            "PO-LIVE-001",
+            "GRN-LIVE-001",
+            "INV-LIVE-001",
+            107,
+            11000,
+            5,
+            25,
+            qa_status=InvoiceQAStatus.MISMATCH
+        )
+
+        s.add(
+            OrderLineItem(
+                po_id="PO-LIVE-001",
+                item_desc="Business Laptop",
+                unit_price=1000,
+                ordered_qty=10,
+                received_qty=10,
+                billed_qty=11,
+                status=OrderLineItemStatus.MISMATCH_FLAGGED
+            )
+        )
+
+        s.add(
+            CaseEvidence(
+                entity_type="Invoice",
+                entity_id="INV-LIVE-001",
+                source_system="EMAIL",
+                source="Supplier",
+                evidence_type="SUPPLIER_NOTE",
+                content=(
+                    "Supplier states that an additional laptop was requested "
+                    "verbally, but no written approval is available."
+                )
+            )
+        )
+        # -----------------------------------------------------
+        # LIVE 2: Cash Application
+        #
+        # Payment = £10,000
+        #
+        # INV-LIVE-101 = £7,000
+        # INV-LIVE-102 = £3,000
+        #
+        # There is exactly one combination for Live Cash Ltd
+        # that totals the remittance.
+        # -----------------------------------------------------
+
+        add_case_invoice(
+            s,
+            "PO-LIVE-101",
+            "GRN-LIVE-101",
+            "INV-LIVE-101",
+            108,
+            7000,
+            20,
+            10
+        )
+
+        add_case_invoice(
+            s,
+            "PO-LIVE-102",
+            "GRN-LIVE-102",
+            "INV-LIVE-102",
+            108,
+            3000,
+            18,
+            12
+        )
+
+        s.add(
+            BankRemittance(
+                payment_id="PAY-LIVE-001",
+                payment_date=now,
+                amount_received=10000,
+                raw_bank_text="LIVE CASH LTD consolidated payment",
+                status=RemittanceStatus.UNPROCESSED,
+                matched_invoice_id=None
+            )
+        )
+        # -----------------------------------------------------
+        # LIVE 3: Dunning
+        # Overdue invoice with contextual evidence.
+        # -----------------------------------------------------
+
+        add_case_invoice(
+            s,
+            "PO-LIVE-201",
+            "GRN-LIVE-201",
+            "INV-LIVE-002",
+            109,
+            24000,
+            70,
+            -40,
+            invoice_status=InvoiceStatus.OVERDUE
+        )
+
+        s.add(
+            DunningAction(
+                invoice_id="INV-LIVE-002",
+                customer_id=109,
+                action_date=now - timedelta(days=15),
+                action_type="REMINDER",
+                message="Initial payment reminder sent.",
+                status=DunningActionStatus.SENT
+            )
+        )
+
+        s.add(
+            CaseEvidence(
+                entity_type="Invoice",
+                entity_id="INV-LIVE-002",
+                source_system="EMAIL",
+                source="Customer",
+                evidence_type="PAYMENT_PROMISE",
+                content=(
+                    "Customer acknowledged the overdue balance and said "
+                    "payment is awaiting final internal approval."
+                )
+            )
+        )
         s.commit()
         print("Demo data seeded successfully.")
         print("Open reviews: Invoice QA=3, Cash Application=2, Dunning=3")
